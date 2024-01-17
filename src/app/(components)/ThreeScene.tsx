@@ -1,113 +1,152 @@
 'use client'
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three'
+import { visibleHeightAtZDepth, visibleWidthAtZDepth, checkTwoShapeIntersect } from '@/helpers';
+import { generatePillars } from '@/ShapeGenerators';
+
+// const scene = new THREE.Scene()
+// const pinkThreeColor = new THREE.Color('#FFB6C1')
+// scene.background = pinkThreeColor
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+const renderer = new THREE.WebGLRenderer()
 
 const ThreeScene= () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rotationRef = useRef<number>(0.01);
   const birdDirectionRef = useRef<number>(-1);
+  const birdUpIncreaseRef = useRef<number>(0);
+  const [score,setScore] = useState<number>(0);
+  const [gameOver,setGameOver] = useState<boolean>(true);
+  const gameOverRef = useRef<boolean>(true)
+  const firstGameRef = useRef<boolean>(true)
+
   let numberOfPillars = 5
 
-  let birdUpPeakIncrease = 0
-  let birdUpPeakIncreasePeak = 0.5
-  let birdUpPeakIncreaseNumerator = 0.05
+  //let birdUpPeakIncrease = 0
+  const birdUpPeakIncreasePeak = 0.3
+  const birdUpPeakIncreaseNumerator = 0.05
   let decreaseAmount = 0.01
+  const pillarGap = 3
+  const pillarWidth = 1
+
+  let pillarHeadStart = 2
+  let cubeHeadStart = 1
+
+  const setGameOverVars = ()=>{
+    firstGameRef.current = false
+    setGameOver(true)
+  }
+
+  useEffect(()=>{
+    gameOverRef.current = gameOver
+  },[gameOver])
+
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      console.log('gameOver',gameOver)
+      birdUpIncreaseRef.current = 0
+      birdDirectionRef.current = -1
+      if(gameOver) return
+
       // Initialize Three.js scene here
       const scene = new THREE.Scene()
+      scene.remove.apply(scene, scene.children)
       const pinkThreeColor = new THREE.Color('#FFB6C1')
       scene.background = pinkThreeColor
 
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-      const renderer = new THREE.WebGLRenderer()
       renderer.setSize(window.innerWidth, window.innerHeight)
       containerRef.current?.appendChild(renderer.domElement)
       camera.position.z = 5
 
-      // Get the field of view
-      var fov = camera;
-
-      // Log the field of view to the console
-      console.log("Field of View:", fov);
-
-      const visibleHeightAtZDepth = ( depth, camera ) => {
-        // compensate for cameras not positioned at z=0
-        const cameraOffset = camera.position.z;
-        if ( depth < cameraOffset ) depth -= cameraOffset;
-        else depth += cameraOffset;
-      
-        // vertical fov in radians
-        const vFOV = camera.fov * Math.PI / 180; 
-      
-        // Math.abs to ensure the result is always positive
-        return 2 * Math.tan( vFOV / 2 ) * Math.abs( depth );
-      };
-      
-      const visibleWidthAtZDepth = ( depth, camera ) => {
-        const height = visibleHeightAtZDepth( depth, camera );
-        return height * camera.aspect;
-      };
-
       const vHeight = visibleHeightAtZDepth(0.5,camera)
+      const vWidth = visibleWidthAtZDepth(0.5,camera)
 
       console.log('VISIBILE',vHeight)
 
 
-      const cubeGeometry = new THREE.BoxGeometry(1, 1, 1)
-      const cubeMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff0000, flatShading:true})
+      const cubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5)
+      const cubeMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
       
-      const cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
+      let cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
 
       scene.add(cube)
 
-      const pillarCubesArrTop = [...Array(numberOfPillars).keys()].map(idx=>{
-        const height = parseFloat(((Math.random()*2)+0.5).toFixed(2))
-        const pillarCubeGeometry = new THREE.BoxGeometry(1, height, 1)
-        const pillarCubeMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff0000, flatShading:true})
-        
-        const pillarCube = new THREE.Mesh(pillarCubeGeometry, pillarCubeMaterial)
-
-        pillarCube.position.y = vHeight/2 - (height/2)
-        //pillarCube.position.y = 3.43
-        pillarCube.position.x = idx%2===0?idx * 1.2:(idx*1.2)*-1
-        pillarCube.position.z = 0
-        pillarCube.geometry.computeBoundingBox()
-        console.log('geometry',pillarCube.geometry.boundingBox)
-
-        console.log('poistuin',pillarCube.position.x)
-        //pillarCube.position.x = -0.2
-        scene.add(pillarCube)
-        return pillarCube
+      cube.position.x = -vWidth/2 + cubeHeadStart
+      cube.position.y = 0
+      let pillarCubesArr = generatePillars({
+        numberOfPillars,
+        pillarWidth,
+        pillarHeadStart,
+        pillarGap,
+        vHeight,
+        scene
       })
+      console.log('pillarCubesArr',pillarCubesArr.map(p=>p.bottomPillarCube.position))
 
       renderer.render(scene, camera)
-      console.log('po',cube.position)
       // cube.geometry.computeBoundingBox()
       // console.log('geometry',cube.geometry.boundingBox)
 
       // Add this function inside the useEffect hook
 
-      console.log('cube-posiiton',cube.position.x,cube.position.y)
-      let stop = false
 
-      const renderScene = () => {
-        if(stop) return
+      const renderChanges = ()=>{
+        if(gameOverRef.current) return
 
         cube.rotation.x += rotationRef.current
         cube.rotation.y += rotationRef.current
+
+        let scoreTemp = 0
+
+        for(let c of pillarCubesArr){
+          c.topPillarCube.position.x -=0.01
+          c.bottomPillarCube.position.x -=0.01
+          if(checkTwoShapeIntersect(c.topPillarCube,cube)){
+            console.log('INTERSECT!! TOP')
+          }
+          if(checkTwoShapeIntersect(c.bottomPillarCube,cube)){
+            console.log('INTERSECT!! bOTTOM',cube.position)
+          }
+          if(checkTwoShapeIntersect(c.topPillarCube,cube) || checkTwoShapeIntersect(c.bottomPillarCube,cube)){
+            // cube.position.x = -vWidth/2 + cubeHeadStart
+            // cube.position.y = 0
+            // pillarCubesArr = generatePillars({
+            //   numberOfPillars,
+            //   pillarWidth,
+            //   pillarHeadStart,
+            //   pillarGap,
+            //   vHeight,
+            //   scene
+            // })
+            pillarCubesArr = []
+            cube = null
+            // scene.remove( cube )
+            // scene.remove(c.topPillarCube)
+            setGameOverVars()
+          }
+
+          if(cube?.position && cube.position.x>c.topPillarCube.position.x){
+            scoreTemp++
+          }
+        }
+        if(scoreTemp!==score){
+          setScore(scoreTemp)
+        }
+
         if(birdDirectionRef.current>0){
-          console.log('birdUpPeakIncrease',birdUpPeakIncrease)
-          cube.position.y += birdUpPeakIncreaseNumerator/(birdUpPeakIncrease+1)
-          birdUpPeakIncrease+=0.01
+          console.log('birdUpPeakIncrease',birdUpIncreaseRef.current)
+          cube.position.y += (birdUpPeakIncreaseNumerator/(birdUpIncreaseRef.current+1))
+          birdUpIncreaseRef.current+=0.01
         }else{
           cube.position.y -= decreaseAmount
         }
   
-        if(birdUpPeakIncrease>=birdUpPeakIncreasePeak){
+        if(birdUpIncreaseRef.current>=birdUpPeakIncreasePeak){
           birdDirectionRef.current=-1
-          birdUpPeakIncrease=0
+          birdUpIncreaseRef.current=0
         }
 
         const frustum = new THREE.Frustum()
@@ -116,17 +155,30 @@ const ThreeScene= () => {
 
         const pos = new THREE.Vector3(cube.position.x+1, cube.position.y+(1*birdDirectionRef.current), cube.position.z);
         if (!frustum.containsPoint(pos)) {
-            // console.log('Out of view',pos)
             decreaseAmount = 0
-            //birdDirectionRef.current=(-1*birdDirectionRef.current)
-            //stop = true
+            pillarCubesArr = []
+            // cube = null
+            // setGameOverVars()
         }
 
+        const lastPillar = pillarCubesArr[pillarCubesArr.length-1]?.topPillarCube
+        if (lastPillar?.position && lastPillar.position.x+pillarWidth/2<(-vWidth/2)) {
+          console.log('last out of range!!')
+          pillarCubesArr = []
+          cube = null
+          setGameOverVars()
+        }
+      }
+
+
+      const renderScene = () => {
+        renderChanges()
         renderer.render(scene, camera)
         requestAnimationFrame(renderScene)
       }
 
       // Call the renderScene function to start the animation loop
+      birdUpIncreaseRef.current = 0
       renderScene()
 
       const handleResize = () => {
@@ -146,19 +198,39 @@ const ThreeScene= () => {
         window.removeEventListener('resize', handleResize);
       }
     }
-  }, [])
+  }, [gameOver])
 
   return (
   <div>
-    <div ref={containerRef} />
-    <button className="btn btn-blue" onClick={()=>{
+    <div ref={containerRef} onClick={()=>{
       // rotationRef.current+=0.01
       birdDirectionRef.current = 1
-      birdUpPeakIncrease = 0
+      birdUpIncreaseRef.current = 0
+      decreaseAmount = 0.01
+    }}/>
+    <button className="btn btn-blue fixed top-[10rem] z-100" onClick={()=>{
+      // rotationRef.current+=0.01
+      birdDirectionRef.current = -1
+      setScore(0)
+      birdUpIncreaseRef.current = 0
       decreaseAmount = 0.01
     }}>
-      test
+      play again
     </button>
+    <div className="btn btn-blue fixed top-0 z-100">
+      {score}
+    </div>
+    { gameOver &&
+    <div className="w-screen h-screen absolute top-0 flex justify-center items-center">
+      <div className="p-3 bg-white rounded border-4 border-black">
+        <button className="btn btn-blue" onClick={()=> {
+          setGameOver(prev=>!prev)
+          gameOverRef.current = !gameOverRef.current
+        }}>
+          start game
+        </button>
+      </div>
+    </div>}
   </div>)
 }
 
