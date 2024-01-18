@@ -20,7 +20,7 @@ const ThreeScene= () => {
   const [isFirstGame,setIsFirstGame] = useState<boolean>(true)
 
   // move this into a data file
-  let numberOfPillars = 10
+  let numberOfPillars = 20
 
   //let birdUpPeakIncrease = 0
   const birdUpPeakIncreasePeak = 0.3
