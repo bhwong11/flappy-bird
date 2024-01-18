@@ -19,7 +19,7 @@ const ThreeScene= () => {
   const gameOverRef = useRef<boolean>(true)
   const [isFirstGame,setIsFirstGame] = useState<boolean>(true)
 
-  let numberOfPillars = 5
+  let numberOfPillars = 10
 
   //let birdUpPeakIncrease = 0
   const birdUpPeakIncreasePeak = 0.3
@@ -32,7 +32,7 @@ const ThreeScene= () => {
   const wingRotationInterval = 0.01
 
 
-  const pillarXGap = 1.5
+  const pillarXGap = 2
   const pillarYGap = 3
   const pillarWidth = 1
   const pillarMovementInterval = 0.01
@@ -42,6 +42,11 @@ const ThreeScene= () => {
 
   //birdSpecs
   const birdBodySize = 0.5
+  const wingLength = 0.3
+  const wingThickness = 0.1
+  const beakRadius = 0.1
+  const beakLength = 0.3
+  const birdHeadRadius = 0.2
 
 
   useEffect(() => {
@@ -106,30 +111,30 @@ const ThreeScene= () => {
       scene.add(cloud)
       scene.add(cloud2)
       
-      const birdBody: THREE.Object3D | null = generateCube(0.5,0.5,0.5)
+      const birdBody: THREE.Object3D | null = generateCube(birdBodySize,birdBodySize,birdBodySize)
 
-      const rightWing: THREE.Object3D = generateCube(0.5,0.1,0.5)
-      const leftWing: THREE.Object3D = generateCube(0.5,0.1,0.5)
+      const rightWing: THREE.Object3D = generateCube(birdBodySize, wingThickness, wingLength)
+      const leftWing: THREE.Object3D = generateCube(birdBodySize, wingThickness, wingLength)
 
-      const beak: THREE.Object3D = generateCone(0.1, 0.3)
-      const birdHead: THREE.Object3D = generateShpere(0.2)
+      const beak: THREE.Object3D = generateCone(beakRadius, beakLength)
+      const birdHead: THREE.Object3D = generateShpere(birdHeadRadius)
 
       rightWing.rotation.x = 2
-      rightWing.position.set(0.5,0.5,0.0)
+      rightWing.position.set(birdBodySize,birdBodySize,0.0)
 
       const rightGroupWing = new THREE.Group()
       rightGroupWing.add(rightWing)
-      rightGroupWing.position.set(-0.5, -0.0, 0)
+      rightGroupWing.position.set(-birdBodySize, 0, 0)
 
       // starting position of right wing
       rightGroupWing.rotation.x = 2
 
       leftWing.rotation.x = -2
-      leftWing.position.set(0.5,0.5,0.0)
+      leftWing.position.set(birdBodySize,birdBodySize,0.0)
 
       const leftGroupWing = new THREE.Group()
       leftGroupWing.add(leftWing)
-      leftGroupWing.position.set(-0.5, -0.0, 0)
+      leftGroupWing.position.set(-birdBodySize, 0, 0)
 
       // starting position of left wing
       leftGroupWing.rotation.x = 4
@@ -170,6 +175,7 @@ const ThreeScene= () => {
         pillarYGap,
         pillarXGap,
         vHeight,
+        vWidth,
         scene
       })
 

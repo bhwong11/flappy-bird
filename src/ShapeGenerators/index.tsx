@@ -6,6 +6,7 @@ type GeneratePillarProps = {
   pillarYGap:number,
   pillarXGap:number,
   vHeight:number,
+  vWidth:number,
   scene:THREE.Scene
 }
 
@@ -16,6 +17,7 @@ export const generatePillars = ({
   pillarYGap,
   pillarXGap,
   vHeight,
+  vWidth,
   scene
 }:GeneratePillarProps)=>{
   return [...Array(numberOfPillars).keys()].map(idx=>idx+1).map(idx=>{
@@ -28,7 +30,7 @@ export const generatePillars = ({
     const topPillarCube = new THREE.Mesh(topPillarCubeGeometry, topPillarCubeMaterial)
 
     topPillarCube.position.y = vHeight/2 - (topPillarheight/2)
-    topPillarCube.position.x = (idx%2===0?(idx*pillarXGap)*-1:(idx*pillarXGap-pillarXGap))+pillarHeadStart*pillarXGap
+    topPillarCube.position.x = idx*pillarXGap - (vWidth/2) + pillarHeadStart
 
     scene.add(topPillarCube)
 
@@ -40,7 +42,7 @@ export const generatePillars = ({
     const bottomPillarCube = new THREE.Mesh(bottomPillarCubeGeometry, bottomPillarCubeMaterial)
 
     bottomPillarCube.position.y = -vHeight/2 + (bottomPillarheight/2)
-    bottomPillarCube.position.x = (idx%2===0?(idx*pillarXGap)*-1:(idx*pillarXGap-pillarXGap))+pillarHeadStart*pillarXGap
+    bottomPillarCube.position.x = idx*pillarXGap - (vWidth/2) + pillarHeadStart
 
     scene.add(bottomPillarCube)
 
