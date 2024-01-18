@@ -52,7 +52,7 @@ const ThreeScene= () => {
       const vHeight = visibleHeightAtZDepth(0.5,camera)
       const vWidth = visibleWidthAtZDepth(0.5,camera)
       
-      let cube: THREE.Object3D | null = generateCube(0.5,0.5,0.5,0xff1000)
+      let birdBody: THREE.Object3D | null = generateCube(0.5,0.5,0.5,0xff1000)
 
       const rightWing: THREE.Object3D = generateCube(0.5,0.1,0.5,0xff1000)
       const leftWing: THREE.Object3D = generateCube(0.5,0.1,0.5,0xff1000)
@@ -90,28 +90,26 @@ const ThreeScene= () => {
       birdHead.position.x = 0.4
 
 
-      const groupCube = new THREE.Group();
-      groupCube.add(beak)
-      groupCube.add(birdHead)
-      groupCube.add(cube)
-      groupCube.add(rightGroupWing)
-      groupCube.add(leftGroupWing)
-      scene.add(groupCube)
-
-      cube = groupCube
+      let birdGroup: THREE.Object3D | null = new THREE.Group();
+      birdGroup.add(beak)
+      birdGroup.add(birdHead)
+      birdGroup.add(birdBody)
+      birdGroup.add(rightGroupWing)
+      birdGroup.add(leftGroupWing)
+      scene.add(birdGroup)
 
       const setGameOverVars = ()=>{
         pillarCubesArr = []
-        cube = null
+        birdGroup = null
         setIsFirstGame(false)
         gameOverRef.current = true
         setRenderGame(false)
       }
-      if(!cube) return
+      if(!birdGroup) return
 
-      cube.position.x = -vWidth/2 + cubeHeadStart
-      cube.position.y = 0
-      // cube.updateMatrix()
+      birdGroup.position.x = -vWidth/2 + cubeHeadStart
+      birdGroup.position.y = 0
+
       let pillarCubesArr = generatePillars({
         numberOfPillars,
         pillarWidth,
@@ -127,7 +125,7 @@ const ThreeScene= () => {
 
 
       const renderChanges = ()=>{
-        if(gameOverRef.current || !cube) return
+        if(gameOverRef.current || !birdGroup) return
 
         //wings flapping
         if(rightGroupWing.rotation.x>=2){
@@ -146,31 +144,31 @@ const ThreeScene= () => {
         for(let c of pillarCubesArr){
           c.topPillarCube.position.x -=0.01
           c.bottomPillarCube.position.x -=0.01
-          if(cube && checkTwoShapeIntersect(c.topPillarCube,cube)){
+          if(birdGroup && checkTwoShapeIntersect(c.topPillarCube,birdGroup)){
             console.log('INTERSECT!! TOP')
           }
-          if(cube && checkTwoShapeIntersect(c.bottomPillarCube,cube)){
-            console.log('INTERSECT!! bOTTOM',cube.position)
+          if(birdGroup && checkTwoShapeIntersect(c.bottomPillarCube,birdGroup)){
+            console.log('INTERSECT!! bOTTOM',birdGroup.position)
           }
-          if(cube && (checkTwoShapeIntersect(c.topPillarCube,cube) || checkTwoShapeIntersect(c.bottomPillarCube,cube))){
+          if(birdGroup && (checkTwoShapeIntersect(c.topPillarCube,birdGroup) || checkTwoShapeIntersect(c.bottomPillarCube,birdGroup))){
             setGameOverVars()
           }
 
-          if(cube?.position && cube.position.x>c.topPillarCube.position.x){
+          if(birdGroup?.position && birdGroup.position.x>c.topPillarCube.position.x){
             scoreTemp++
           }
         }
         if(scoreTemp!==score){
           setScore(scoreTemp)
         }
-        if(!cube) return
+        if(!birdGroup) return
         if(birdDirectionRef.current>0){
           console.log('birdUpPeakIncrease',birdUpIncreaseRef.current)
-          cube.position.y += (birdUpPeakIncreaseNumerator/(birdUpIncreaseRef.current+1))
+          birdGroup.position.y += (birdUpPeakIncreaseNumerator/(birdUpIncreaseRef.current+1))
           birdUpIncreaseRef.current+=0.01
           wingRotationRef.current=wingRotationRef.current>0?0.08:-0.08
         }else{
-          cube.position.y -= decreaseAmount
+          birdGroup.position.y -= decreaseAmount
           wingRotationRef.current=wingRotationRef.current>0?0.01:-0.01
         }
   
@@ -183,7 +181,7 @@ const ThreeScene= () => {
         const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
         frustum.setFromProjectionMatrix(matrix)
 
-        const pos = new THREE.Vector3(cube.position.x+1, cube.position.y+(1*birdDirectionRef.current), cube.position.z);
+        const pos = new THREE.Vector3(birdGroup.position.x+1, birdGroup.position.y+(1*birdDirectionRef.current), birdGroup.position.z);
         if (!frustum.containsPoint(pos)) {
             decreaseAmount = 0
             setGameOverVars()
