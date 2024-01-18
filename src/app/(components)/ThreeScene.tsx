@@ -19,6 +19,7 @@ const ThreeScene= () => {
   const gameOverRef = useRef<boolean>(true)
   const [isFirstGame,setIsFirstGame] = useState<boolean>(true)
 
+  // move this into a data file
   let numberOfPillars = 10
 
   //let birdUpPeakIncrease = 0
@@ -32,12 +33,12 @@ const ThreeScene= () => {
   const wingRotationInterval = 0.01
 
 
-  const pillarXGap = 2
+  const pillarXGap = 3
   const pillarYGap = 3
   const pillarWidth = 1
   const pillarMovementInterval = 0.01
 
-  const pillarHeadStart = 3
+  const pillarHeadStart = 1
   const cubeHeadStart = 1
 
   //birdSpecs
@@ -47,6 +48,11 @@ const ThreeScene= () => {
   const beakRadius = 0.1
   const beakLength = 0.3
   const birdHeadRadius = 0.2
+
+  // starting positions
+  const rightWingRotationPosition= 2
+  const leftWingRotationPosition = -2
+  const headRotationPosition = -1.5
 
 
   useEffect(() => {
@@ -119,7 +125,7 @@ const ThreeScene= () => {
       const beak: THREE.Object3D = generateCone(beakRadius, beakLength)
       const birdHead: THREE.Object3D = generateShpere(birdHeadRadius)
 
-      rightWing.rotation.x = 2
+      rightWing.rotation.x = rightWingRotationPosition
       rightWing.position.set(birdBodySize,birdBodySize,0.0)
 
       const rightGroupWing = new THREE.Group()
@@ -127,9 +133,9 @@ const ThreeScene= () => {
       rightGroupWing.position.set(-birdBodySize, 0, 0)
 
       // starting position of right wing
-      rightGroupWing.rotation.x = 2
+      rightGroupWing.rotation.x = rightWingRotationPosition
 
-      leftWing.rotation.x = -2
+      leftWing.rotation.x = leftWingRotationPosition
       leftWing.position.set(birdBodySize,birdBodySize,0.0)
 
       const leftGroupWing = new THREE.Group()
@@ -137,15 +143,15 @@ const ThreeScene= () => {
       leftGroupWing.position.set(-birdBodySize, 0, 0)
 
       // starting position of left wing
-      leftGroupWing.rotation.x = 4
-
-      //beak position
-      beak.rotation.z = -1.5
-      beak.position.x = 0.7
+      leftGroupWing.rotation.x = leftWingRotationPosition
 
       //head position
-      birdHead.rotation.z = -1.5
-      birdHead.position.x = 0.4
+      birdHead.rotation.z = headRotationPosition
+      birdHead.position.x = birdBodySize
+
+      //beak position
+      beak.rotation.z = headRotationPosition
+      beak.position.x = birdBodySize+beakLength
 
 
       let birdGroup: THREE.Object3D | null = new THREE.Group();
