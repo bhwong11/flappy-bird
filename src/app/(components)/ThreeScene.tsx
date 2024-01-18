@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three'
 import { visibleHeightAtZDepth, visibleWidthAtZDepth, checkTwoShapeIntersect } from '@/helpers';
-import { generatePillars } from '@/ShapeGenerators';
+import { generatePillars, generateCone, generateShpere, generateCube } from '@/ShapeGenerators';
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 const renderer = new THREE.WebGLRenderer()
@@ -51,30 +51,15 @@ const ThreeScene= () => {
 
       const vHeight = visibleHeightAtZDepth(0.5,camera)
       const vWidth = visibleWidthAtZDepth(0.5,camera)
-
-      console.log('VISIBILE',vHeight)
-
-
-      const cubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5)
-      const cubeMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
       
-      let cube: THREE.Object3D | null = new THREE.Mesh(cubeGeometry, cubeMaterial)
+      let cube: THREE.Object3D | null = generateCube(0.5,0.5,0.5,0xff1000)
 
-      const rightWingGeometry = new THREE.BoxGeometry(0.5,0.1,0.5)
-      const rightWingMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
-      const rightWing: THREE.Object3D = new THREE.Mesh(rightWingGeometry, rightWingMaterial)
+      const rightWing: THREE.Object3D = generateCube(0.5,0.1,0.5,0xff1000)
+      const leftWing: THREE.Object3D = generateCube(0.5,0.1,0.5,0xff1000)
 
-      const leftWingGeometry = new THREE.BoxGeometry(0.5,0.1,0.5)
-      const leftWingMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
-      const leftWing: THREE.Object3D = new THREE.Mesh(leftWingGeometry, leftWingMaterial)
+      const beak: THREE.Object3D = generateCone(0.1, 0.3, 0xff1000)
 
-      const coneGeometry = new THREE.ConeGeometry( 0.1, 0.3 )
-      const coneMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
-      const cone = new THREE.Mesh(coneGeometry, coneMaterial )
-
-      const sphereGeometry = new THREE.SphereGeometry( 0.2 )
-      const sphereMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
-      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial )
+      const birdHead: THREE.Object3D = generateShpere(0.2, 0xff1000)
 
       rightWing.rotation.x = 2
       rightWing.position.set(0.5,0.5,0.0)
@@ -96,18 +81,18 @@ const ThreeScene= () => {
       // starting position of left wing
       leftGroupWing.rotation.x = 4
 
-      //cone position
-      cone.rotation.z = -1.5
-      cone.position.x = 0.7
+      //beak position
+      beak.rotation.z = -1.5
+      beak.position.x = 0.7
 
-      //cone position
-      sphere.rotation.z = -1.5
-      sphere.position.x = 0.4
+      //head position
+      birdHead.rotation.z = -1.5
+      birdHead.position.x = 0.4
 
 
       const groupCube = new THREE.Group();
-      groupCube.add(cone)
-      groupCube.add(sphere)
+      groupCube.add(beak)
+      groupCube.add(birdHead)
       groupCube.add(cube)
       groupCube.add(rightGroupWing)
       groupCube.add(leftGroupWing)
@@ -139,10 +124,6 @@ const ThreeScene= () => {
       console.log('pillarCubesArr',pillarCubesArr.map(p=>p.bottomPillarCube.position))
 
       renderer.render(scene, camera)
-      // cube.geometry.computeBoundingBox()
-      // console.log('geometry',cube.geometry.boundingBox)
-
-      // Add this function inside the useEffect hook
 
 
       const renderChanges = ()=>{
