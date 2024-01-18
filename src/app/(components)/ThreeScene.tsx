@@ -1,6 +1,7 @@
 'use client'
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three'
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { visibleHeightAtZDepth, visibleWidthAtZDepth, checkTwoShapeIntersect } from '@/helpers';
 import { generatePillars, generateCone, generateShpere, generateCube } from '@/ShapeGenerators';
 
@@ -12,6 +13,7 @@ const ThreeScene= () => {
   const wingRotationRef = useRef<number>(0.01);
   const birdDirectionRef = useRef<number>(-1);
   const birdUpIncreaseRef = useRef<number>(0);
+  const birdDownIntervalRef = useRef<number>(0.01);
   const [score,setScore] = useState<number>(0);
   const [renderGame,setRenderGame] = useState<boolean>(true);
   const gameOverRef = useRef<boolean>(true)
@@ -22,44 +24,94 @@ const ThreeScene= () => {
   //let birdUpPeakIncrease = 0
   const birdUpPeakIncreasePeak = 0.3
   const birdUpPeakIncreaseNumerator = 0.05
-  let decreaseAmount = 0.01
+  const birdFallInterval = 0.01
+
+  const wingRotationMax = 2
+  const wingRotationMin = 1.2
+  const wingRotationIntervalSpedUp = 0.08
+  const wingRotationInterval = 0.01
+
+
   const pillarGap = 3
   const pillarWidth = 1
+  const pillarMovementInterval = 0.01
 
-  let pillarHeadStart = 2
-  let cubeHeadStart = 1
+  const pillarHeadStart = 3
+  const cubeHeadStart = 1
 
+  //birdSpecs
+  const birdBodySize = 0.5
 
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('render Game',renderGame)
       birdUpIncreaseRef.current = 0
       birdDirectionRef.current = -1
-      wingRotationRef.current = 0.01
+      wingRotationRef.current = wingRotationInterval
+      birdDownIntervalRef.current = birdFallInterval
       if(!renderGame) return
 
       // Initialize Three.js scene here
       const scene = new THREE.Scene()
       scene.remove.apply(scene, scene.children)
-      const pinkThreeColor = new THREE.Color('#FFB6C1')
-      scene.background = pinkThreeColor
+      const bgThreeColor = new THREE.Color('#ADD8E6')
+      scene.background = bgThreeColor
 
       renderer.setSize(window.innerWidth, window.innerHeight)
       containerRef.current?.appendChild(renderer.domElement)
       camera.position.z = 5
 
-      const vHeight = visibleHeightAtZDepth(0.5,camera)
-      const vWidth = visibleWidthAtZDepth(0.5,camera)
+      const vHeight:number = visibleHeightAtZDepth(0.5,camera)
+      const vWidth:number = visibleWidthAtZDepth(0.5,camera)
+
+      //add lighting
+      const directionalLight = new THREE.DirectionalLight( 0xffffff, 4 )
+      directionalLight.position.set(0,0,0.5)
+      scene.add( directionalLight )
+
+
+      //create clouds
+      const tuft1 = new THREE.SphereGeometry(1.5,7,8)
+      tuft1.translate(-2,0,0)
+
+      const tuft2 = new THREE.SphereGeometry(1.5,7,8)
+      tuft2.translate(2,0,0)
+
+      const tuft3 = new THREE.SphereGeometry(2.0,7,8)
+      tuft3.translate(0,0,0)
+
+      const geo = BufferGeometryUtils.mergeGeometries([tuft1,tuft2,tuft3])
+
+      const cloud = new THREE.Mesh(
+        geo,
+        new THREE.MeshLambertMaterial({
+          color: 0xFFFFFF, side: 2,flatShading:true
+        })
+      )
+
+      const cloud2 = new THREE.Mesh(
+        geo,
+        new THREE.MeshLambertMaterial({
+          color: 0xFFFFFF, side: 2,flatShading:true
+        })
+      )
+
+      cloud.position.z = -10
+      cloud.position.x = -1
+
+      cloud2.position.z = -10
+      cloud2.position.x = 7
+      cloud2.position.y = 2
+      scene.add(cloud)
+      scene.add(cloud2)
       
-      let birdBody: THREE.Object3D | null = generateCube(0.5,0.5,0.5,0xff1000)
+      const birdBody: THREE.Object3D | null = generateCube(0.5,0.5,0.5)
 
-      const rightWing: THREE.Object3D = generateCube(0.5,0.1,0.5,0xff1000)
-      const leftWing: THREE.Object3D = generateCube(0.5,0.1,0.5,0xff1000)
+      const rightWing: THREE.Object3D = generateCube(0.5,0.1,0.5)
+      const leftWing: THREE.Object3D = generateCube(0.5,0.1,0.5)
 
-      const beak: THREE.Object3D = generateCone(0.1, 0.3, 0xff1000)
-
-      const birdHead: THREE.Object3D = generateShpere(0.2, 0xff1000)
+      const beak: THREE.Object3D = generateCone(0.1, 0.3)
+      const birdHead: THREE.Object3D = generateShpere(0.2)
 
       rightWing.rotation.x = 2
       rightWing.position.set(0.5,0.5,0.0)
@@ -118,8 +170,6 @@ const ThreeScene= () => {
         vHeight,
         scene
       })
-      //pillarCubesArr = []
-      console.log('pillarCubesArr',pillarCubesArr.map(p=>p.bottomPillarCube.position))
 
       renderer.render(scene, camera)
 
@@ -128,28 +178,19 @@ const ThreeScene= () => {
         if(gameOverRef.current || !birdGroup) return
 
         //wings flapping
-        if(rightGroupWing.rotation.x>=2){
-          console.log('HIT!!')
+        if(rightGroupWing.rotation.x>=wingRotationMax){
           wingRotationRef.current = wingRotationRef.current * -1
-        }else if(rightGroupWing.rotation.x<=1.2){
-          console.log('INCREWAING')
+        }else if(rightGroupWing.rotation.x<=wingRotationMin){
           wingRotationRef.current = wingRotationRef.current * -1
         }
-        console.log('CCU',rightGroupWing.rotation.x)
         rightGroupWing.rotation.x += wingRotationRef.current
         leftGroupWing.rotation.x -= wingRotationRef.current
 
         let scoreTemp = 0
 
         for(let c of pillarCubesArr){
-          c.topPillarCube.position.x -=0.01
-          c.bottomPillarCube.position.x -=0.01
-          if(birdGroup && checkTwoShapeIntersect(c.topPillarCube,birdGroup)){
-            console.log('INTERSECT!! TOP')
-          }
-          if(birdGroup && checkTwoShapeIntersect(c.bottomPillarCube,birdGroup)){
-            console.log('INTERSECT!! bOTTOM',birdGroup.position)
-          }
+          c.topPillarCube.position.x -=pillarMovementInterval
+          c.bottomPillarCube.position.x -=pillarMovementInterval
           if(birdGroup && (checkTwoShapeIntersect(c.topPillarCube,birdGroup) || checkTwoShapeIntersect(c.bottomPillarCube,birdGroup))){
             setGameOverVars()
           }
@@ -163,13 +204,12 @@ const ThreeScene= () => {
         }
         if(!birdGroup) return
         if(birdDirectionRef.current>0){
-          console.log('birdUpPeakIncrease',birdUpIncreaseRef.current)
           birdGroup.position.y += (birdUpPeakIncreaseNumerator/(birdUpIncreaseRef.current+1))
-          birdUpIncreaseRef.current+=0.01
-          wingRotationRef.current=wingRotationRef.current>0?0.08:-0.08
+          birdUpIncreaseRef.current+=birdFallInterval
+          wingRotationRef.current=wingRotationRef.current>0?wingRotationIntervalSpedUp:-wingRotationIntervalSpedUp 
         }else{
-          birdGroup.position.y -= decreaseAmount
-          wingRotationRef.current=wingRotationRef.current>0?0.01:-0.01
+          birdGroup.position.y -= birdDownIntervalRef.current
+          wingRotationRef.current=wingRotationRef.current>0?wingRotationInterval:-wingRotationInterval        
         }
   
         if(birdUpIncreaseRef.current>=birdUpPeakIncreasePeak){
@@ -183,13 +223,12 @@ const ThreeScene= () => {
 
         const pos = new THREE.Vector3(birdGroup.position.x+1, birdGroup.position.y+(1*birdDirectionRef.current), birdGroup.position.z);
         if (!frustum.containsPoint(pos)) {
-            decreaseAmount = 0
+            birdDownIntervalRef.current = 0
             setGameOverVars()
         }
 
         const lastPillar = pillarCubesArr[pillarCubesArr.length-1]?.topPillarCube
         if (lastPillar?.position && lastPillar.position.x+pillarWidth/2<(-vWidth/2)) {
-          console.log('last out of range!!')
           setGameOverVars()
         }
       }
@@ -201,7 +240,6 @@ const ThreeScene= () => {
         requestAnimationFrame(renderScene)
       }
 
-      // Call the renderScene function to start the animation loop
       birdUpIncreaseRef.current = 0
       renderScene()
 
@@ -217,7 +255,6 @@ const ThreeScene= () => {
   
       window.addEventListener('resize', handleResize);
   
-      // Clean up the event listener when the component is unmounted
       return () => {
         window.removeEventListener('resize', handleResize);
       }
@@ -227,10 +264,9 @@ const ThreeScene= () => {
   return (
   <div>
     <div ref={containerRef} onClick={()=>{
-      // wingRotationRef.current+=0.01
       birdDirectionRef.current = 1
       birdUpIncreaseRef.current = 0
-      decreaseAmount = 0.01
+      birdDownIntervalRef.current = birdFallInterval
     }}/>
     <div className="fixed top-0 z-100 flex w-screen justify-center">
       <div className="text-black text-center text-xl bg-white border-4 border-black rounded min-w-[3rem]">
@@ -246,8 +282,6 @@ const ThreeScene= () => {
           setIsFirstGame(false)
         }}>
           {!isFirstGame?<div className='text-lg'>scrore: {score}</div>:null}
-          {/* {JSON.stringify(renderGame)}
-          {JSON.stringify(isFirstGame)} */}
           {isFirstGame?"start game":"play again"}
         </button>
       </div>
