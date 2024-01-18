@@ -5,8 +5,8 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 import { visibleHeightAtZDepth, visibleWidthAtZDepth, checkTwoShapeIntersect } from '@/helpers';
 import { generatePillars, generateCone, generateShpere, generateCube } from '@/ShapeGenerators';
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-const renderer = new THREE.WebGLRenderer()
+let camera: THREE.PerspectiveCamera | null = null
+let renderer: THREE.WebGLRenderer | null = null
 
 const ThreeScene= () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,6 +54,11 @@ const ThreeScene= () => {
   const leftWingRotationPosition = -2
   const headRotationPosition = -1.5
 
+  useEffect(()=>{
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+    renderer = new THREE.WebGLRenderer()
+  },[])
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -61,7 +66,7 @@ const ThreeScene= () => {
       birdDirectionRef.current = -1
       wingRotationRef.current = wingRotationInterval
       birdDownIntervalRef.current = birdFallInterval
-      if(!renderGame) return
+      if(!renderGame || !renderer || !camera) return
 
       // Initialize Three.js scene here
       const scene = new THREE.Scene()
@@ -258,6 +263,9 @@ const ThreeScene= () => {
       renderScene()
 
       const handleResize = () => {
+        if(typeof window=== 'undefined'){
+          return
+        }
         const width = window.innerWidth
         const height = window.innerHeight
   
