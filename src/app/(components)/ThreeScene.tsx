@@ -9,7 +9,7 @@ const renderer = new THREE.WebGLRenderer()
 
 const ThreeScene= () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const rotationRef = useRef<number>(0.01);
+  const wingRotationRef = useRef<number>(0.01);
   const birdDirectionRef = useRef<number>(-1);
   const birdUpIncreaseRef = useRef<number>(0);
   const [score,setScore] = useState<number>(0);
@@ -36,6 +36,7 @@ const ThreeScene= () => {
       console.log('render Game',renderGame)
       birdUpIncreaseRef.current = 0
       birdDirectionRef.current = -1
+      wingRotationRef.current = 0.01
       if(!renderGame) return
 
       // Initialize Three.js scene here
@@ -59,7 +60,60 @@ const ThreeScene= () => {
       
       let cube: THREE.Object3D | null = new THREE.Mesh(cubeGeometry, cubeMaterial)
 
-      scene.add(cube)
+      const rightWingGeometry = new THREE.BoxGeometry(0.5,0.1,0.5)
+      const rightWingMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
+      const rightWing: THREE.Object3D = new THREE.Mesh(rightWingGeometry, rightWingMaterial)
+
+      const leftWingGeometry = new THREE.BoxGeometry(0.5,0.1,0.5)
+      const leftWingMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
+      const leftWing: THREE.Object3D = new THREE.Mesh(leftWingGeometry, leftWingMaterial)
+
+      const coneGeometry = new THREE.ConeGeometry( 0.1, 0.3 )
+      const coneMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
+      const cone = new THREE.Mesh(coneGeometry, coneMaterial )
+
+      const sphereGeometry = new THREE.SphereGeometry( 0.2 )
+      const sphereMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial )
+
+      rightWing.rotation.x = 2
+      rightWing.position.set(0.5,0.5,0.0)
+
+      const rightGroupWing = new THREE.Group()
+      rightGroupWing.add(rightWing)
+      rightGroupWing.position.set(-0.5, -0.0, 0)
+
+      // starting position of right wing
+      rightGroupWing.rotation.x = 2
+
+      leftWing.rotation.x = -2
+      leftWing.position.set(0.5,0.5,0.0)
+
+      const leftGroupWing = new THREE.Group()
+      leftGroupWing.add(leftWing)
+      leftGroupWing.position.set(-0.5, -0.0, 0)
+
+      // starting position of left wing
+      leftGroupWing.rotation.x = 4
+
+      //cone position
+      cone.rotation.z = -1.5
+      cone.position.x = 0.7
+
+      //cone position
+      sphere.rotation.z = -1.5
+      sphere.position.x = 0.4
+
+
+      const groupCube = new THREE.Group();
+      groupCube.add(cone)
+      groupCube.add(sphere)
+      groupCube.add(cube)
+      groupCube.add(rightGroupWing)
+      groupCube.add(leftGroupWing)
+      scene.add(groupCube)
+
+      cube = groupCube
 
       const setGameOverVars = ()=>{
         pillarCubesArr = []
@@ -72,7 +126,7 @@ const ThreeScene= () => {
 
       cube.position.x = -vWidth/2 + cubeHeadStart
       cube.position.y = 0
-      cube.updateMatrix()
+      // cube.updateMatrix()
       let pillarCubesArr = generatePillars({
         numberOfPillars,
         pillarWidth,
@@ -81,6 +135,7 @@ const ThreeScene= () => {
         vHeight,
         scene
       })
+      //pillarCubesArr = []
       console.log('pillarCubesArr',pillarCubesArr.map(p=>p.bottomPillarCube.position))
 
       renderer.render(scene, camera)
@@ -93,8 +148,17 @@ const ThreeScene= () => {
       const renderChanges = ()=>{
         if(gameOverRef.current || !cube) return
 
-        cube.rotation.x += rotationRef.current
-        cube.rotation.y += rotationRef.current
+        //wings flapping
+        if(rightGroupWing.rotation.x>=2){
+          console.log('HIT!!')
+          wingRotationRef.current = wingRotationRef.current * -1
+        }else if(rightGroupWing.rotation.x<=1.2){
+          console.log('INCREWAING')
+          wingRotationRef.current = wingRotationRef.current * -1
+        }
+        console.log('CCU',rightGroupWing.rotation.x)
+        rightGroupWing.rotation.x += wingRotationRef.current
+        leftGroupWing.rotation.x -= wingRotationRef.current
 
         let scoreTemp = 0
 
@@ -108,18 +172,6 @@ const ThreeScene= () => {
             console.log('INTERSECT!! bOTTOM',cube.position)
           }
           if(cube && (checkTwoShapeIntersect(c.topPillarCube,cube) || checkTwoShapeIntersect(c.bottomPillarCube,cube))){
-            // cube.position.x = -vWidth/2 + cubeHeadStart
-            // cube.position.y = 0
-            // pillarCubesArr = generatePillars({
-            //   numberOfPillars,
-            //   pillarWidth,
-            //   pillarHeadStart,
-            //   pillarGap,
-            //   vHeight,
-            //   scene
-            // })
-            // scene.remove( cube )
-            // scene.remove(c.topPillarCube)
             setGameOverVars()
           }
 
@@ -135,8 +187,10 @@ const ThreeScene= () => {
           console.log('birdUpPeakIncrease',birdUpIncreaseRef.current)
           cube.position.y += (birdUpPeakIncreaseNumerator/(birdUpIncreaseRef.current+1))
           birdUpIncreaseRef.current+=0.01
+          wingRotationRef.current=wingRotationRef.current>0?0.08:-0.08
         }else{
           cube.position.y -= decreaseAmount
+          wingRotationRef.current=wingRotationRef.current>0?0.01:-0.01
         }
   
         if(birdUpIncreaseRef.current>=birdUpPeakIncreasePeak){
@@ -194,7 +248,7 @@ const ThreeScene= () => {
   return (
   <div>
     <div ref={containerRef} onClick={()=>{
-      // rotationRef.current+=0.01
+      // wingRotationRef.current+=0.01
       birdDirectionRef.current = 1
       birdUpIncreaseRef.current = 0
       decreaseAmount = 0.01
