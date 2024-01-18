@@ -4,10 +4,6 @@ import * as THREE from 'three'
 import { visibleHeightAtZDepth, visibleWidthAtZDepth, checkTwoShapeIntersect } from '@/helpers';
 import { generatePillars } from '@/ShapeGenerators';
 
-// const scene = new THREE.Scene()
-// const pinkThreeColor = new THREE.Color('#FFB6C1')
-// scene.background = pinkThreeColor
-
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 const renderer = new THREE.WebGLRenderer()
 
@@ -17,9 +13,9 @@ const ThreeScene= () => {
   const birdDirectionRef = useRef<number>(-1);
   const birdUpIncreaseRef = useRef<number>(0);
   const [score,setScore] = useState<number>(0);
-  const [gameOver,setGameOver] = useState<boolean>(true);
+  const [renderGame,setRenderGame] = useState<boolean>(true);
   const gameOverRef = useRef<boolean>(true)
-  const firstGameRef = useRef<boolean>(true)
+  const [isFirstGame,setIsFirstGame] = useState<boolean>(true)
 
   let numberOfPillars = 5
 
@@ -33,23 +29,14 @@ const ThreeScene= () => {
   let pillarHeadStart = 2
   let cubeHeadStart = 1
 
-  const setGameOverVars = ()=>{
-    firstGameRef.current = false
-    setGameOver(true)
-  }
-
-  useEffect(()=>{
-    gameOverRef.current = gameOver
-  },[gameOver])
-
 
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('gameOver',gameOver)
+      console.log('render Game',renderGame)
       birdUpIncreaseRef.current = 0
       birdDirectionRef.current = -1
-      if(gameOver) return
+      if(!renderGame) return
 
       // Initialize Three.js scene here
       const scene = new THREE.Scene()
@@ -70,12 +57,22 @@ const ThreeScene= () => {
       const cubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5)
       const cubeMaterial = new THREE.MeshNormalMaterial({blendColor: 0xff1000, flatShading:true})
       
-      let cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
+      let cube: THREE.Object3D | null = new THREE.Mesh(cubeGeometry, cubeMaterial)
 
       scene.add(cube)
 
+      const setGameOverVars = ()=>{
+        pillarCubesArr = []
+        cube = null
+        setIsFirstGame(false)
+        gameOverRef.current = true
+        setRenderGame(false)
+      }
+      if(!cube) return
+
       cube.position.x = -vWidth/2 + cubeHeadStart
       cube.position.y = 0
+      cube.updateMatrix()
       let pillarCubesArr = generatePillars({
         numberOfPillars,
         pillarWidth,
@@ -94,7 +91,7 @@ const ThreeScene= () => {
 
 
       const renderChanges = ()=>{
-        if(gameOverRef.current) return
+        if(gameOverRef.current || !cube) return
 
         cube.rotation.x += rotationRef.current
         cube.rotation.y += rotationRef.current
@@ -104,13 +101,13 @@ const ThreeScene= () => {
         for(let c of pillarCubesArr){
           c.topPillarCube.position.x -=0.01
           c.bottomPillarCube.position.x -=0.01
-          if(checkTwoShapeIntersect(c.topPillarCube,cube)){
+          if(cube && checkTwoShapeIntersect(c.topPillarCube,cube)){
             console.log('INTERSECT!! TOP')
           }
-          if(checkTwoShapeIntersect(c.bottomPillarCube,cube)){
+          if(cube && checkTwoShapeIntersect(c.bottomPillarCube,cube)){
             console.log('INTERSECT!! bOTTOM',cube.position)
           }
-          if(checkTwoShapeIntersect(c.topPillarCube,cube) || checkTwoShapeIntersect(c.bottomPillarCube,cube)){
+          if(cube && (checkTwoShapeIntersect(c.topPillarCube,cube) || checkTwoShapeIntersect(c.bottomPillarCube,cube))){
             // cube.position.x = -vWidth/2 + cubeHeadStart
             // cube.position.y = 0
             // pillarCubesArr = generatePillars({
@@ -121,8 +118,6 @@ const ThreeScene= () => {
             //   vHeight,
             //   scene
             // })
-            pillarCubesArr = []
-            cube = null
             // scene.remove( cube )
             // scene.remove(c.topPillarCube)
             setGameOverVars()
@@ -135,7 +130,7 @@ const ThreeScene= () => {
         if(scoreTemp!==score){
           setScore(scoreTemp)
         }
-
+        if(!cube) return
         if(birdDirectionRef.current>0){
           console.log('birdUpPeakIncrease',birdUpIncreaseRef.current)
           cube.position.y += (birdUpPeakIncreaseNumerator/(birdUpIncreaseRef.current+1))
@@ -156,16 +151,12 @@ const ThreeScene= () => {
         const pos = new THREE.Vector3(cube.position.x+1, cube.position.y+(1*birdDirectionRef.current), cube.position.z);
         if (!frustum.containsPoint(pos)) {
             decreaseAmount = 0
-            pillarCubesArr = []
-            // cube = null
-            // setGameOverVars()
+            setGameOverVars()
         }
 
         const lastPillar = pillarCubesArr[pillarCubesArr.length-1]?.topPillarCube
         if (lastPillar?.position && lastPillar.position.x+pillarWidth/2<(-vWidth/2)) {
           console.log('last out of range!!')
-          pillarCubesArr = []
-          cube = null
           setGameOverVars()
         }
       }
@@ -198,7 +189,7 @@ const ThreeScene= () => {
         window.removeEventListener('resize', handleResize);
       }
     }
-  }, [gameOver])
+  }, [renderGame])
 
   return (
   <div>
@@ -208,26 +199,23 @@ const ThreeScene= () => {
       birdUpIncreaseRef.current = 0
       decreaseAmount = 0.01
     }}/>
-    <button className="btn btn-blue fixed top-[10rem] z-100" onClick={()=>{
-      // rotationRef.current+=0.01
-      birdDirectionRef.current = -1
-      setScore(0)
-      birdUpIncreaseRef.current = 0
-      decreaseAmount = 0.01
-    }}>
-      play again
-    </button>
-    <div className="btn btn-blue fixed top-0 z-100">
-      {score}
+    <div className="fixed top-0 z-100 flex w-screen justify-center">
+      <div className="text-black text-center text-xl bg-white border-4 border-black rounded min-w-[3rem]">
+        {score}
+      </div>
     </div>
-    { gameOver &&
+    { (!renderGame || isFirstGame) &&
     <div className="w-screen h-screen absolute top-0 flex justify-center items-center">
       <div className="p-3 bg-white rounded border-4 border-black">
         <button className="btn btn-blue" onClick={()=> {
-          setGameOver(prev=>!prev)
+          setRenderGame(true)
           gameOverRef.current = !gameOverRef.current
+          setIsFirstGame(false)
         }}>
-          start game
+          {!isFirstGame?<div className='text-lg'>scrore: {score}</div>:null}
+          {/* {JSON.stringify(renderGame)}
+          {JSON.stringify(isFirstGame)} */}
+          {isFirstGame?"start game":"play again"}
         </button>
       </div>
     </div>}
