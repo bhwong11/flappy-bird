@@ -221,7 +221,8 @@ const ThreeScene= () => {
         if(scoreTemp!==score){
           setScore(scoreTemp)
         }
-        if(!birdGroup) return
+
+        if(!birdGroup || !camera || !renderer) return
         if(birdDirectionRef.current>0){
           birdGroup.position.y += (birdUpPeakIncreaseNumerator/(birdUpIncreaseRef.current+1))
           birdUpIncreaseRef.current+=birdFallInterval
@@ -254,6 +255,7 @@ const ThreeScene= () => {
 
 
       const renderScene = () => {
+        if(!camera || !renderer) return
         renderChanges()
         renderer.render(scene, camera)
         requestAnimationFrame(renderScene)
@@ -266,6 +268,7 @@ const ThreeScene= () => {
         if(typeof window=== 'undefined'){
           return
         }
+        if(!camera || !renderer) return
         const width = window.innerWidth
         const height = window.innerHeight
   
