@@ -32,7 +32,8 @@ const ThreeScene= () => {
   const wingRotationInterval = 0.01
 
 
-  const pillarGap = 3
+  const pillarXGap = 1.5
+  const pillarYGap = 3
   const pillarWidth = 1
   const pillarMovementInterval = 0.01
 
@@ -166,7 +167,8 @@ const ThreeScene= () => {
         numberOfPillars,
         pillarWidth,
         pillarHeadStart,
-        pillarGap,
+        pillarYGap,
+        pillarXGap,
         vHeight,
         scene
       })
