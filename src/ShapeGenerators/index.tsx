@@ -52,9 +52,9 @@ export const generatePillars = ({
 }
 
 export const generateCube = (x:number,y:number, z:number, colorCode: number = 0xff1000) =>{
-  const wingGeometry = new THREE.BoxGeometry(x,y,z)
-  const wingMaterial = new THREE.MeshNormalMaterial({blendColor: colorCode, flatShading:true})
-  return new THREE.Mesh(wingGeometry, wingMaterial)
+  const cubeGeometry = new THREE.BoxGeometry(x,y,z)
+  const cubeMaterial = new THREE.MeshNormalMaterial({blendColor: colorCode, flatShading:true})
+  return new THREE.Mesh(cubeGeometry, cubeMaterial)
 }
 
 export const generateCone = (radius:number, height:number, colorCode: number = 0xff1000) =>{
